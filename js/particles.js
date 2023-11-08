@@ -1,4 +1,7 @@
 function Particle() {
+    /* TODO randomize starting position every time particle is invoked, so different streams start happening
+    *   https://p5js.org/examples/simulate-multiple-particle-systems.html
+    *  */
     this.pos = createVector(random(width), random(height)); // starting position gets messed up when scaled up
     this.vel = createVector(0,0); // randomly moving around
     this.acc = createVector(0,0);
@@ -25,7 +28,18 @@ function Particle() {
         this.acc.add(force);
     }
 
-    this.show = function(paletteOne, paletteTwo, paletteThree, paletteFour) {
+    this.show = function(colour) {
+        noStroke();
+        fill(colour);
+        //point(this.pos.x, this.pos.y);
+        //line(this.pos.x, this.pos.y, this.prevPos.x, this.prevPos.y);
+        rect(this.pos.x, this.pos.y, pixelSize, pixelSize);
+        this.updatePrev();
+    }
+
+    /*
+        version with random confetti
+        this.show = function(paletteOne, paletteTwo, paletteThree, paletteFour) {
         let rng = [paletteOne, paletteTwo, paletteThree, paletteFour]
         noStroke();
         fill(random(rng));
@@ -33,7 +47,7 @@ function Particle() {
         //line(this.pos.x, this.pos.y, this.prevPos.x, this.prevPos.y);
         rect(this.pos.x, this.pos.y, pixelSize, pixelSize);
         this.updatePrev();
-    }
+    }*/
 
     this.updatePrev = function() {
         this.prevPos.x = this.pos.x;
