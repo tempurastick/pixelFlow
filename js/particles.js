@@ -1,11 +1,40 @@
-function Particle() {
+class Rectangle {
+    constructor(x, y, w, h) {
+        this.x = x; // x-coordinate of the top-left corner
+        this.y = y; // y-coordinate of the top-left corner
+        this.w = w; // Width of the rectangle
+        this.h = h; // Height of the rectangle
+    }
+
+    contains(point) {
+        return (
+            point.x >= this.x &&
+            point.x < this.x + this.w &&
+            point.y >= this.y &&
+            point.y < this.y + this.h
+        );
+    }
+
+    intersects(other) {
+        return !(
+            other.x > this.x + this.w ||
+            other.x + other.w < this.x ||
+            other.y > this.y + this.h ||
+            other.y + other.h < this.y
+        );
+    }
+}
+
+
+function Particle(rW, rH, size = pixelSize) {
     /* TODO randomize starting position every time particle is invoked, so different streams start happening
     *   https://p5js.org/examples/simulate-multiple-particle-systems.html
     *  */
-    this.pos = createVector(random(width), random(height)); // starting position gets messed up when scaled up
+    this.pos = createVector(rW, rH); // starting position gets messed up when scaled up
     this.vel = createVector(0,0); // randomly moving around
     this.acc = createVector(0,0);
-    this.maxspeed = 2;
+    this.maxspeed = .5;
+    this.size = size;
 
     this.prevPos = this.pos.copy();
 
@@ -19,7 +48,7 @@ function Particle() {
     this.follow = function(vectors) {
         const x = floor(this.pos.x / scale);
         const y = floor(this.pos.y / scale);
-        const index = x + y * cols;
+        const index = x + y * cols; // Constrain index to prevent array out-of-bounds;
         const force = vectors[index];
         this.applyForce(force);
     }
@@ -31,9 +60,9 @@ function Particle() {
     this.show = function(colour) {
         noStroke();
         fill(colour);
-        //point(this.pos.x, this.pos.y);
-        //line(this.pos.x, this.pos.y, this.prevPos.x, this.prevPos.y);
-        rect(this.pos.x, this.pos.y, pixelSize, pixelSize);
+        // pixelSize is not dependent on var right now
+        square(this.pos.x, this.pos.y, this.size);
+        //square(this.pos.x, this.pos.y, pixelSize);
         this.updatePrev();
     }
 
@@ -76,4 +105,20 @@ function Particle() {
             this.updatePrev();
         };
     }
+}
+
+function SecondParticle(rW, rH, size = pixelSize) {
+    Particle.call(this, rW, rH, size);
+}
+
+SecondParticle.prototype = Object.create(Particle.prototype);
+SecondParticle.prototype.constructor = SecondParticle;
+
+SecondParticle.prototype.follow = function(vectors) {
+    // Implement a different follow behavior for SecondParticle
+    const x = floor(this.pos.x / (scale/.5));
+    const y = floor(this.pos.y / (scale/2));
+    const index = x + y * cols;
+    const force = vectors[index];
+    this.applySpecialForce(force);
 }
