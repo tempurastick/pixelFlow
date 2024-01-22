@@ -26,7 +26,7 @@ class Rectangle {
 }
 
 
-function Particle(rW, rH, size = pixelSize) {
+function Particle(rW, rH, size = pixelSize, startingSide = 0) {
     /* TODO randomize starting position every time particle is invoked, so different streams start happening
     *   https://p5js.org/examples/simulate-multiple-particle-systems.html
     *  */
@@ -35,6 +35,12 @@ function Particle(rW, rH, size = pixelSize) {
     this.acc = createVector(0,0);
     this.maxspeed = .5;
     this.size = size;
+
+    if ( startingSide === 0) {
+        this.pos = createVector(random(0, width / 2), random(0, height));
+    } else {
+        this.pos = createVector(random(width / 2, width), random(0, height));
+    }
 
     this.prevPos = this.pos.copy();
 
@@ -50,6 +56,7 @@ function Particle(rW, rH, size = pixelSize) {
         const y = floor(this.pos.y / scale);
         const index = x + y * cols; // Constrain index to prevent array out-of-bounds;
         const force = vectors[index];
+        force.mult(0.5);
         this.applyForce(force);
     }
 
@@ -107,8 +114,8 @@ function Particle(rW, rH, size = pixelSize) {
     }
 }
 
-function SecondParticle(rW, rH, size = pixelSize) {
-    Particle.call(this, rW, rH, size);
+function SecondParticle(rW, rH, size = pixelSize, startingSide = 0) {
+    Particle.call(this, rW, rH, size, startingSide);
 }
 
 SecondParticle.prototype = Object.create(Particle.prototype);

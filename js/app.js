@@ -13,27 +13,35 @@ let fr;
 let rModifier = 10;
 let angleModifier = 2;
 let zOffset = 0;
+// fallback palettes
 let paletteOne = "#222323";
 let paletteTwo = "#f0f6f0";
 
-let palette = ["#222323", "#f0f6f0", '#8bc8fe', '#051b2c', '#1b1233', '#dcf29d', '#1d0f44', '#f44e38'];
+let palette;
 let particles = [];
 let secondParticle = [];
 let particleNumber = 3000;
 
 let flowField;
-
 let quad;
 
 let backgroundInclusion = false;
 
+function preload() {
+    palette = loadJSON("/json/palettes.json");
+
+
+}
+
 function setup() {
-        // need to add a proper calculation for pixel size upon grabbed canvas
+    let paletteCount = Object.keys(palette).length;
+
+    // need to add a proper calculation for pixel size upon grabbed canvas
     // scaled x10
-    let magnifier = 4;
-    canvasWidth = canvasWidth*magnifier;
-    canvasHeight = canvasHeight*magnifier;
-    pixelSize = pixelSize*magnifier;
+    let magnifier = 5;
+    canvasWidth = canvasWidth * magnifier;
+    canvasHeight = canvasHeight * magnifier;
+    pixelSize = pixelSize * magnifier;
 
     let shuffle = floor(random(0, 2));
 
@@ -43,26 +51,32 @@ function setup() {
     angleModifier = random(0, 5);
     /* rng values end */
 
-    if ( shuffle === 0 ) {
+    if (shuffle === 0) {
         backgroundInclusion = true;
     }
-    // rudimentary shuffle
-    let paletteChoice = floor(random(0, palette.length));
-    if (paletteChoice < 2 ) {
-        paletteOne = palette[2];
-        paletteTwo = palette[3];
-    } else if (paletteChoice < 4) {
-        paletteOne = palette[4];
-        paletteTwo = palette[5];
-    } else if (paletteChoice < 6) {
-        paletteOne = palette[6];
-        paletteTwo = palette[7];
+
+    // shuffling through the json
+    let paletteChoice = floor(random(0, paletteCount));
+
+    for ( const item in palette[paletteChoice]) {
+        if(item == 0) {
+            paletteOne = "#" + palette[paletteChoice][item];
+        } else {
+            paletteTwo = "#" + palette[paletteChoice][item];
+        }
     }
 
-    createCanvas(canvasWidth,canvasHeight);
+    // swapping spots between the colours
+    let paletteInvert = floor(random(0, 2));
+    if ( paletteInvert === 0) {
+        paletteOne = [paletteTwo, paletteTwo = paletteOne][0];
+    }
+
+
+    createCanvas(canvasWidth, canvasHeight);
     pixelDensity(1); // one px per px
-    cols = floor(width/scale);
-    rows = floor(height/scale);
+    cols = floor(width / scale);
+    rows = floor(height / scale);
 //    fr = createP('');
     flowField = new Array(cols * rows);
 
@@ -73,47 +87,41 @@ function setup() {
         height: canvasHeight
     })
 
-    if ( backgroundInclusion == true ) {
+    if (backgroundInclusion === true) {
         particleNumber = 9000;
-        for ( i = 0; i < particleNumber; i++) {
-            secondParticle[i] = new SecondParticle(random(width) , random(height), pixelSize);
+        for (i = 0; i < particleNumber; i++) {
+            secondParticle[i] = new SecondParticle(random(width), random(height), pixelSize);
         }
     } else {
-        for ( i = 0; i < particleNumber; i++) {
-            secondParticle[i] = new SecondParticle(random(width) , random(height), pixelSize);
+        for (i = 0; i < particleNumber; i++) {
+            secondParticle[i] = new SecondParticle(random(width), random(height), pixelSize);
         }
-        for ( i = 0; i < particleNumber; i++) {
+        for (i = 0; i < particleNumber; i++) {
             particles[i] = new Particle(random(width), random(height), pixelSize);
         }
     }
 
     document.body.style.backgroundColor = paletteOne;
-let refreshBtn = document.getElementById('refreshPage');
-refreshBtn.style.backgroundColor = paletteTwo;
-refreshBtn.style.color = paletteOne;
-    refreshBtn.addEventListener("click", function() {
+    let refreshBtn = document.getElementById('refreshPage');
+    refreshBtn.style.backgroundColor = paletteTwo;
+    refreshBtn.style.color = paletteOne;
+    refreshBtn.addEventListener("click", function () {
         location.reload();
     });
-
-
-/*    let button = document.getElementById('scaleUp');
-    button.addEventListener("click", function() {
-        scaleUp(2);
-    });*/
 }
 
 function scaleUp(multiplier) {
     /* TODO
     currently does not reflect starting point
     */
-    scale = scale*multiplier;
+    scale = scale * multiplier;
     pixelSize = multiplier;
-    resizeCanvas(canvasWidth*multiplier, canvasHeight*multiplier);
+    resizeCanvas(canvasWidth * multiplier, canvasHeight * multiplier);
 }
 
 function draw() {
-    if ( backgroundInclusion == true ) {
-        background(paletteOne); // TODO turn off after demo
+    if (backgroundInclusion === true) {
+        background(paletteOne);
     } else {
         particleInvokation(paletteOne, particles);
     }
@@ -134,8 +142,8 @@ function riverFlow(colour, particles) {
         let xOffset = 0;
         for (let x = 0; x < cols; x++) {
             let index = (x + y * cols); // calculates how many array items we need in flowField
-            let r = (noise(xOffset, yOffset))*rModifier; // 2d perlin noise
-            let angle = noise(xOffset, yOffset, zOffset)*PI*angleModifier; // 2d perlin noise
+            let r = (noise(xOffset, yOffset)) * rModifier; // 2d perlin noise
+            let angle = noise(xOffset, yOffset, zOffset) * PI * angleModifier; // 2d perlin noise
             let vector = p5.Vector.fromAngle(angle);
             vector.setMag(.02);
             flowField[index] = vector;
@@ -156,7 +164,7 @@ function riverFlow(colour, particles) {
 * */
 
 function particleInvokation(colour, particles) {
-    for ( i = 0; i < particles.length; i++) {
+    for (i = 0; i < particles.length; i++) {
         particles[i].follow(flowField);
         particles[i].update();
         particles[i].edges();
