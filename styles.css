@@ -1,0 +1,53 @@
+body {
+    margin: 0 auto;
+}
+
+#refreshPage {
+    display: block;
+    position: absolute;
+    margin: 1rem auto;
+    width: 8rem;
+    font-size: 1rem;
+    height: 3rem;
+    border: 0;
+}
+
+#defaultCanvas0 {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media only screen and (min-width: 1200px) {
+    #refreshPage {
+        display: block;
+        position: static;
+        margin: 1rem auto;
+        width: 8rem;
+        font-size: 1rem;
+        height: 3rem;
+        border: 0;
+    }
+
+    #defaultCanvas0 {
+        width: inherit !important;
+        height: inherit !important;
+    }
+}
+
+main {
+    text-align: center;
+}
+
+.crt-scanlines::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+}

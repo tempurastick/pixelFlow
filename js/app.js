@@ -1,188 +1,224 @@
-
 /* variables */
 let canvasWidth = 160;
 let canvasHeight = 144;
 let backgroundColour = 255;
 let pixelSize = 1;
 let xOffset = 1; // default xOffset value we pick
-let xOffset2 = 200; // different start value
-let increment = 0.1; // modifies noise x-graph increment
+let xOffset2 = 80; // different start value
+let increment = 0.1; // modifies noise x-graph increment | the higher the value, the more chaotic it gets
 let start = 0;
-let scale = 4; // scale of one flow  point
+let scale = 10; // scale of one flow  point
 let cols, rows;
 let fr;
+let rModifier = 10;
+let angleModifier = 2;
 let zOffset = 0;
-let paletteOne = "#ff7777";
-let paletteTwo = "#ffce96";
-let paletteThree = "#00303b";
-let paletteFour = "#f1f2da";
+// fallback palettes
+let paletteOne = "#222323";
+let paletteTwo = "#f0f6f0";
 
-let palette = [paletteOne, paletteTwo, paletteThree, paletteFour];
-
+let palette;
 let particles = [];
-let particleNumber = 10000;
+let secondParticle = [];
+let particleNumber = 2000;
 
 let flowField;
+let quad;
 
-/* TODO:
-*   separate the vectors into two or three different flows
-*   make the flowfield imitate marbled paper flows
-*   performance tweaks
-*   fix the running out of particles over long time
-*   randomise colour palette via API
-* */
+let backgroundInclusion = false;
+
+function preload() {
+    let url = "./json/palettes.json";
+    palette = loadJSON(url);
+}
+
 function setup() {
-    createCanvas(canvasWidth,canvasHeight);
-    pixelDensity(1); // one px per px
-    cols = floor(width/scale);
-    rows = floor(height/scale);
-    fr = createP('');
-    flowField = new Array(cols * rows);
-    //background(backgroundColour);
-    for ( i = 0; i < particleNumber; i++) {
-        particles[i] = new Particle();
+    let paletteCount = Object.keys(palette).length;
+
+    // need to add a proper calculation for pixel size upon grabbed canvas
+    // scaled x10
+    let magnifier = 5;
+    canvasWidth = canvasWidth * magnifier;
+    //canvasHeight = canvasHeight * magnifier;
+    canvasHeight = 480;
+    pixelSize = pixelSize * magnifier;
+
+    let shuffle = floor(random(0, 2));
+
+    /* rng values */
+    scale = floor(random(6, 20));
+    rModifier = floor(random(1, 15));
+    angleModifier = random(0, 5);
+    /* rng values end */
+
+    if (shuffle === 0) {
+        backgroundInclusion = true;
     }
-    background(paletteFour);
-    scaleUp(1);
+
+    // shuffling through the json
+    let paletteChoice = floor(random(0, paletteCount));
+
+    for ( const item in palette[paletteChoice]) {
+        if(item == 0) {
+            paletteOne = "#" + palette[paletteChoice][item];
+        } else {
+            paletteTwo = "#" + palette[paletteChoice][item];
+        }
+    }
+
+    // swapping spots between the colours
+    let paletteInvert = floor(random(0, 2));
+    if ( paletteInvert === 0) {
+        paletteOne = [paletteTwo, paletteTwo = paletteOne][0];
+    }
+
+
+    createCanvas(canvasWidth, canvasHeight);
+    pixelDensity(1); // one px per px
+    cols = floor(width / scale);
+    rows = floor(height / scale);
+//    fr = createP('');
+    flowField = new Array(cols * rows);
+
+    quad = new Quadtree({
+        x: 0,
+        y: 0,
+        width: canvasWidth,
+        height: canvasHeight
+    })
+
+    if (backgroundInclusion === true) {
+        particleNumber = particleNumber*2;
+        for (i = 0; i < particleNumber; i++) {
+            do {
+                secondParticle[i] = new SecondParticle( width, height, pixelSize, 0);
+            } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), quad));
+            quad.insert(secondParticle[i]);
+        }
+    } else {
+        for (i = 0; i < particleNumber; i++) {
+            do {
+                secondParticle[i] = new SecondParticle(width, height, pixelSize, 1);
+            } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), quad));
+            quad.insert(secondParticle[i]);
+
+        }
+        for (i = 0; i < particleNumber; i++) {
+            do {
+                particles[i] = new Particle(width, height, pixelSize, 2);
+            } while (particleOverlap(particles[i].pos, pixelSize, particles.concat(secondParticle), quad));
+            quad.insert(particles[i]);
+
+        }
+    }
+
+    document.body.style.backgroundColor = paletteOne;
+    let refreshBtn = document.getElementById('refreshPage');
+    refreshBtn.style.backgroundColor = paletteTwo;
+    refreshBtn.style.color = paletteOne;
+    refreshBtn.addEventListener("click", function () {
+        location.reload();
+    });
 }
 
 function scaleUp(multiplier) {
     /* TODO
     currently does not reflect starting point
     */
-    scale = scale*multiplier;
+    scale = scale * multiplier;
     pixelSize = multiplier;
-    resizeCanvas(canvasWidth*multiplier, canvasHeight*multiplier);
+    resizeCanvas(canvasWidth * multiplier, canvasHeight * multiplier);
 }
 
 function draw() {
+    if (backgroundInclusion === true) {
+        background(paletteOne);
+    } else {
+        particleInvokation(paletteOne, particles);
+    }
 
+    quad.clear();
+    riverFlow(paletteOne, particles);
+    particleInvokation(paletteTwo, secondParticle);
 
-/* perlin noise field start */
+    // frameRate checker
+    //fr.html(floor(frameRate()));
+}
+
+// flowfield try to move it less
+function riverFlow(colour, particles) {
+    /* perlin noise field start */
     let yOffset = 0;
     for (let y = 0; y < rows; y++) {
-       let xOffset = 0;
+        let xOffset = 0;
         for (let x = 0; x < cols; x++) {
             let index = (x + y * cols); // calculates how many array items we need in flowField
-            let r = (noise(xOffset, yOffset)) *255; // 2d perlin noise
-            let angle = noise(xOffset, yOffset, zOffset)* PI*2; // 2d perlin noise
+            let r = (noise(xOffset, yOffset)) * rModifier; // 2d perlin noise
+            let angle = noise(xOffset, yOffset, zOffset) * PI * angleModifier; // 2d perlin noise
             let vector = p5.Vector.fromAngle(angle);
-            vector.setMag(.5);
+            vector.setMag(.02);
             flowField[index] = vector;
             xOffset += increment;
-            let showFlowField = function() {
-                push();
-
-             /*
-             this is a pretty funny effect even if it's not what I want. Kinda reminds me of van gogh
-
-                stroke(random(palette));
-                translate(x * scale, y * scale);
-                rotate(vector.heading());
-                line(0,0,scale,0);*/
-
-                pop();
-            }
-
-            showFlowField();
-
-            //rect(x * scale, y * scale, scale, scale);
         }
-            yOffset += increment;
-       zOffset += 0.0005;
+        yOffset += increment;
+        zOffset += 0.0006; // velocity
     }
-    /* perlin noise field end */
+/*    let range = new Rectangle(0, 0, canvasWidth, canvasHeight);
+    let particlesInRange = quad.retrieve(range);*/
 
-    for ( i = 0; i < particles.length; i++) {
+    /* perlin noise field end */
+}
+
+/*
+* Debating turning the particles into something other than a single pixel for each particle because it's pretty heavy.
+* Alternative would be to use a different shape and get to the dithering via collision testing.
+* */
+
+function particleInvokation(colour, particles) {
+    for (i = 0; i < particles.length; i++) {
         particles[i].follow(flowField);
         particles[i].update();
         particles[i].edges();
-        particles[i].show(paletteOne, paletteTwo, paletteThree, paletteFour); // passes colour variables as parameters
+        particles[i].show(colour); // passes colour variables as parameters
+        // Insert the particle into the Quadtree
+        quad.insert({
+            pos: particles[i].pos,
+            width: pixelSize,
+            height: pixelSize
+        });
     }
-
-    fr.html(floor(frameRate()));
 }
 
+// Function to check if a particle overlaps with existing particles in the Quadtree
+function particleOverlap(newPos, size, particleArray, quad) {
+    const range = new Rectangle(newPos.x, newPos.y, size, size);
+    const particlesInRange = quad.retrieve(range);
 
-function perlinNoiseDemo() {
-    loadPixels();
-    // two-dimensional perlin noise
-    for (let x = 0; x < width; x++) {
-        let yOffset = 0; // we need to set the yOffset inside the x-axis loop
-
-        for (let y = 0; y < height; y++) {
-            let index = (x + y * width) * 4; // what happens here?
-            let r = (noise(xOffset, yOffset)) *255;
-            pixels[index] = r;
-            pixels[index+1] = r;
-            pixels[index+2] = r;
-            pixels[index+3] = 255;
-
-            yOffset += increment;
-        }
-        xOffset += increment;
-    }
-    updatePixels();
-}
-
-function staticNoise() {
-    /* TODO look-up loadPixels and how to use pixels in p5.js */
-    loadPixels();
-    // basically static noise
-    for (let x = 0; x < width; x++) {
-        for (let y = 0; y < height; y++) {
-            let index = (x + y * width) * 4; // what happens here?
-            let r = random(255);
-            pixels[index] = r;
-            pixels[index+1] = r;
-            pixels[index+2] = r;
-            pixels[index+3] = 255;
+    for (let i = 0; i < particlesInRange.length; i++) {
+        const otherParticle = particlesInRange[i];
+        const d = dist(newPos.x, newPos.y, otherParticle.pos.x, otherParticle.pos.y);
+        if (d < size && particleArray.indexOf(otherParticle) === -1) {
+            return true; // Overlapping with an existing particle
         }
     }
-    updatePixels();
+
+    return false; // Not overlapping with any existing particle
 }
 
-// one-dimensional perlin noise
-function noiseGraph() {
-    let xOffset = 0; // default xOffset value we pick
-    let xOffset2 = 200; // different start value
-    let increment = 0.01; // modifies noise x-graph increment
-    let start = 0;
 
-    background(255);
-    strokeWeight(1);
-    noFill();
-    beginShape();
-    xOffset = start; // ties xOffset to our start value
-    for (let x = 0; x < width; x++) {
-        //vertex(random(160), random(144)); // pure randomness
-        //vertex(x, random(144)); // random graph on y-axis
-        let y = noise(xOffset) * height; // xOffset value is the "start" point of the perlin noise
-        vertex(x, y); // random graph on y-axis
+/* TODO
+*   future implementation: device rotation / angle
+*  so that the stream gets changed when you shake etc the phone
+*   https://p5js.org/reference/#/p5/deviceTurned
+*
+*  check out these examples:
+*   https://www.youtube.com/watch?app=desktop&v=nnSqPzOAmvc
+*
+* Tim:
+*  Bin-lettal spacial subdivision -> in nature of code
+*
+* might change the logic from particles to boids / quadtree
+* https://www.youtube.com/watch?v=OJxEcs0w_kE&pp=ygULcXVhZHRyZWUgcDU%3D
+*
+* */
 
-        xOffset += increment; // refresh seed
-    }
-    endShape();
-
-    start += increment; // by incrementing the start value we're moving along the x-axis of the perlin noise
-}
-
-function noiseExplanation() {
-    //map(value, start1, stop1, start2, stop2, [withinBounds])
-    let randomX = map(noise(xOffset), 0, 1, 0, width);
-    let randomY = map(noise(xOffset2), 0, 1, 0, height);
-    square(randomX, randomY, pixelSize, pixelSize);
-    xOffset += 0.01; // refreshes the noise seed, also changes the speed
-    xOffset2 += 0.01; // refreshes the noise seed
-}
-
-// one-dimensional perlin noise end
-
-function pixel(pixelSize) {
-    pixelSize = 1; // default fallback
-    square(mouseX, mouseY, pixelSize);
-}
-
-/*function mousePressed() {
-    rect(mouseX, mouseY, pixelSize, pixelSize);
-}*/
