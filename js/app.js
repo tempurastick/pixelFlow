@@ -20,7 +20,7 @@ let paletteTwo = "#f0f6f0";
 let palette;
 let particles = [];
 let secondParticle = [];
-let particleNumber = 3000;
+let particleNumber = 2000;
 
 let flowField;
 let quad;
@@ -28,9 +28,8 @@ let quad;
 let backgroundInclusion = false;
 
 function preload() {
-    palette = loadJSON("/json/palettes.json");
-
-
+    let url = "./json/palettes.json";
+    palette = loadJSON(url);
 }
 
 function setup() {
@@ -40,7 +39,8 @@ function setup() {
     // scaled x10
     let magnifier = 5;
     canvasWidth = canvasWidth * magnifier;
-    canvasHeight = canvasHeight * magnifier;
+    //canvasHeight = canvasHeight * magnifier;
+    canvasHeight = 480;
     pixelSize = pixelSize * magnifier;
 
     let shuffle = floor(random(0, 2));
@@ -88,16 +88,27 @@ function setup() {
     })
 
     if (backgroundInclusion === true) {
-        particleNumber = 9000;
+        particleNumber = particleNumber*2;
         for (i = 0; i < particleNumber; i++) {
-            secondParticle[i] = new SecondParticle(random(width), random(height), pixelSize);
+            do {
+                secondParticle[i] = new SecondParticle( width, height, pixelSize, 0);
+            } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), quad));
+            quad.insert(secondParticle[i]);
         }
     } else {
         for (i = 0; i < particleNumber; i++) {
-            secondParticle[i] = new SecondParticle(random(width), random(height), pixelSize);
+            do {
+                secondParticle[i] = new SecondParticle(width, height, pixelSize, 1);
+            } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), quad));
+            quad.insert(secondParticle[i]);
+
         }
         for (i = 0; i < particleNumber; i++) {
-            particles[i] = new Particle(random(width), random(height), pixelSize);
+            do {
+                particles[i] = new Particle(width, height, pixelSize, 2);
+            } while (particleOverlap(particles[i].pos, pixelSize, particles.concat(secondParticle), quad));
+            quad.insert(particles[i]);
+
         }
     }
 
@@ -152,9 +163,9 @@ function riverFlow(colour, particles) {
         yOffset += increment;
         zOffset += 0.0006; // velocity
     }
+/*    let range = new Rectangle(0, 0, canvasWidth, canvasHeight);
+    let particlesInRange = quad.retrieve(range);*/
 
-    let range = new Rectangle(0, 0, canvasWidth, canvasHeight);
-    let particlesInRange = quad.retrieve(range);
     /* perlin noise field end */
 }
 
@@ -177,6 +188,23 @@ function particleInvokation(colour, particles) {
         });
     }
 }
+
+// Function to check if a particle overlaps with existing particles in the Quadtree
+function particleOverlap(newPos, size, particleArray, quad) {
+    const range = new Rectangle(newPos.x, newPos.y, size, size);
+    const particlesInRange = quad.retrieve(range);
+
+    for (let i = 0; i < particlesInRange.length; i++) {
+        const otherParticle = particlesInRange[i];
+        const d = dist(newPos.x, newPos.y, otherParticle.pos.x, otherParticle.pos.y);
+        if (d < size && particleArray.indexOf(otherParticle) === -1) {
+            return true; // Overlapping with an existing particle
+        }
+    }
+
+    return false; // Not overlapping with any existing particle
+}
+
 
 /* TODO
 *   future implementation: device rotation / angle

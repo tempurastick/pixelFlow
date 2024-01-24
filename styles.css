@@ -4,11 +4,34 @@ body {
 
 #refreshPage {
     display: block;
+    position: absolute;
     margin: 1rem auto;
     width: 8rem;
     font-size: 1rem;
     height: 3rem;
     border: 0;
+}
+
+#defaultCanvas0 {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media only screen and (min-width: 1200px) {
+    #refreshPage {
+        display: block;
+        position: static;
+        margin: 1rem auto;
+        width: 8rem;
+        font-size: 1rem;
+        height: 3rem;
+        border: 0;
+    }
+
+    #defaultCanvas0 {
+        width: inherit !important;
+        height: inherit !important;
+    }
 }
 
 main {

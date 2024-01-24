@@ -26,20 +26,28 @@ class Rectangle {
 }
 
 
-function Particle(rW, rH, size = pixelSize, startingSide = 0) {
-    /* TODO randomize starting position every time particle is invoked, so different streams start happening
-    *   https://p5js.org/examples/simulate-multiple-particle-systems.html
-    *  */
-    this.pos = createVector(rW, rH); // starting position gets messed up when scaled up
+function Particle(rW = width, rH = height, size = pixelSize, startingSide = 0) {
+    this.pos = createVector(rW, rH);
     this.vel = createVector(0,0); // randomly moving around
     this.acc = createVector(0,0);
     this.maxspeed = .5;
     this.size = size;
 
     if ( startingSide === 0) {
-        this.pos = createVector(random(0, width / 2), random(0, height));
-    } else {
-        this.pos = createVector(random(width / 2, width), random(0, height));
+       /* instead of starting on one side of the screen
+       * I'll change it so that it starts as a sin wave or something more interesting
+       * also the ones with no background are more interesting if they do start
+       * spaghetti-ish. Probably best to turn these into random parameters too
+       * */
+        this.pos = createVector(random(0, rW), random(0,rH));
+    } else if (startingSide === 1){
+        // right half
+        //this.pos = createVector(random(width / 2, width), random(0, height));
+        this.pos = createVector(random((rH/2), TWO_PI*(rH/2)), random((rH/2), TWO_PI*(rH/2)));
+    } else if (startingSide === 2) {
+        // left half
+        //this.pos = createVector(random(0, width / 2), random(0, height));
+        this.pos = createVector(random(0, TWO_PI*(rW/2)), random(0, TWO_PI*(rH/2)));
     }
 
     this.prevPos = this.pos.copy();
@@ -47,7 +55,10 @@ function Particle(rW, rH, size = pixelSize, startingSide = 0) {
     this.update = function() {
         this.vel.add(this.acc);
         this.vel.limit(this.maxspeed);
-        this.pos.add(this.vel);
+
+        let stepSize = scale / 2;
+
+        this.pos.add(p5.Vector.mult(this.vel, stepSize));
         this.acc.mult(0);
     }
 
@@ -56,8 +67,10 @@ function Particle(rW, rH, size = pixelSize, startingSide = 0) {
         const y = floor(this.pos.y / scale);
         const index = x + y * cols; // Constrain index to prevent array out-of-bounds;
         const force = vectors[index];
-        force.mult(0.5);
-        this.applyForce(force);
+        if (force) {
+            force.mult(0.5); // strength of the force multiplier aka how strict the particles follow the field
+            this.applyForce(force);
+        }
     }
 
     this.applyForce = function(force) {
@@ -114,7 +127,7 @@ function Particle(rW, rH, size = pixelSize, startingSide = 0) {
     }
 }
 
-function SecondParticle(rW, rH, size = pixelSize, startingSide = 0) {
+function SecondParticle(rW, rH, size = pixelSize, startingSide) {
     Particle.call(this, rW, rH, size, startingSide);
 }
 
@@ -127,5 +140,11 @@ SecondParticle.prototype.follow = function(vectors) {
     const y = floor(this.pos.y / (scale/2));
     const index = x + y * cols;
     const force = vectors[index];
-    this.applySpecialForce(force);
+    if (force) {
+        force.mult(5); // strength of the force multiplier aka how strict the particles follow the field
+        this.applyForce(force);
+    }
+
 }
+
+/* maybe I need a second force field but I think that'd be overkill */
