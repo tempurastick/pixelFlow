@@ -51,8 +51,17 @@ function preload() {
 * https://www.reddit.com/r/generative/comments/17fx7ew/playing_with_flow_field_effects_lines_are_drawn/
 * I could also adjust the colours inside a single particle depending on the position
 * */
+
+function flowfieldSetup(p) {
+    p.setup = {
+
+    }
+
+}
+
 function setup() {
     flowState = noField;
+
     // picks a random field
     flowFieldShuffle();
 
@@ -105,21 +114,21 @@ function setup() {
             do {
                 secondParticle[i] = new SecondParticle( width, height, pixelSize, 0);
             } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), qtree));
-            //qtree.insert(secondParticle[i]);
+            qtree.insert(secondParticle[i]);
         }
     } else {
         for (i = 0; i < particleNumber; i++) {
             do {
                 secondParticle[i] = new SecondParticle(width, height, pixelSize, 1);
             } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), qtree));
-            //qtree.insert(secondParticle[i]);
+            qtree.insert(secondParticle[i]);
 
         }
         for (i = 0; i < particleNumber; i++) {
             do {
                 particles[i] = new Particle(width, height, pixelSize, 2);
             } while (particleOverlap(particles[i].pos, pixelSize, secondParticle.concat(particles), qtree));
-            //qtree.insert(particles[i]);
+            qtree.insert(particles[i]);
         }
     }
 
@@ -134,11 +143,39 @@ function setup() {
 
     // manual refresh
     let refreshBtn = document.getElementById('refreshPage');
-    refreshBtn.style.backgroundColor = paletteTwo;
-    refreshBtn.style.color = paletteOne;
+
     refreshBtn.addEventListener("click", function () {
         location.reload();
     });
+
+    // set colour for all buttons to match palette
+    let btns = document.querySelectorAll(".btn");
+
+    btns.forEach((btn) => {
+        btn.style.backgroundColor = paletteTwo;
+        btn.style.color = paletteOne;
+
+        btn.addEventListener("click", function() {
+            // if already active -> remove
+            btns.forEach((btn) => btn.classList.remove("active"))
+
+            // TODO: refactor to switch case
+            if ( btn.id === "funkyBtn" ) {
+                flowState = funkyField;
+            } else if ( btn.id === "classicField") {
+                flowState = classicField;
+            } else if ( btn.id === "waveField") {
+                flowState = waveField;
+            } else if ( btn.id === "spinField") {
+                flowState = spinField;
+            } else if ( btn.id === "nobgBtn") {
+                backgroundInclusion = false;
+            } else if ( btn.id === "bgBtn") {
+                backgroundInclusion = true;
+            }
+            btn.classList.add("active");
+        });
+    })
 }
 
 function flowFieldShuffle() {
@@ -163,19 +200,16 @@ function flowFieldShuffle() {
     }
 }
 
-
-
-
 function pixelGridShuffle() {
     let pixelGridShuffle = floor(random(0, 2));
     if (pixelGridShuffle === 0) {
         pixelGridInclusion = true;
     }
+    pixelGridInclusion = true;
 }
 
 function draw() {
     invokeShuffledFlowfield();
-
     qtree.clear();    // clearing quadtree with each draw
 
     // for the different modes
