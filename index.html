@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <title>Pixel Flow</title>
     <script src="js/p5.min.js"></script>
-   <!-- <script src="js/quadtree.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/p5.capture@1.4.1/dist/p5.capture.umd.min.js"></script>
+
+    <!-- <script src="js/quadtree.js"></script>-->
     <script src="node_modules/@timohausmann/quadtree-js/quadtree.js"></script>
     <script src="js/flowfield.js"></script>
     <script src="js/particles.js"></script>
@@ -14,7 +16,11 @@
 <body>
 <div class="crt-scanlines"></div>
 <button class="btn" id="refreshPage"> Refresh </button>
-<main></main>
+<main id="p5Canvas">
+
+    <div class="pixelgrid"></div>
+</main>
+
 <div class="control-container">
     <div class="field-container">
         <button class="btn" id="classicBtn"> Classic Field </button>
@@ -25,6 +31,9 @@
     <div class="backgroundMode-container">
         <button class="btn" id="nobgBtn"> Line Mode </button>
         <button class="btn" id="bgBtn"> Point Mode </button>
+    </div>
+    <div class="qtree-container">
+        <button class="btn" id="qtBtn"> quadTree display</button>
     </div>
 </div>
 </body>

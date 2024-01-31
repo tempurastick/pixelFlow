@@ -72,7 +72,6 @@ class Flowfield {
                 let index = (x + y * cols); // calculates how many array// items we need in flowField
                 let nx = 0.03*x*zOffset;
                 let ny = 0.003*y;
-                //let vector = createVector(x, -y);
                 let vector = p5.Vector.fromAngles(noise(nx), noise(ny));
                 xOffset +- increment;
                 vector.setMag(0.5);
