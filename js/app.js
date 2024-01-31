@@ -30,7 +30,7 @@ let flowField;
 let qtree;
 
 let backgroundInclusion = false;
-let pixelGridInclusion = false;
+let qtreeShow = false;
 
 let flowState;
 const noField = 1;
@@ -38,7 +38,7 @@ const classicField = 2;
 const waveField = 3;
 const spinField = 4;
 const funkyField = 5;
-
+p5.disableFriendlyErrors = true; // disables FES
 
 function preload() {
     let url = "./json/palettes.json";
@@ -51,17 +51,80 @@ function preload() {
 * https://www.reddit.com/r/generative/comments/17fx7ew/playing_with_flow_field_effects_lines_are_drawn/
 * I could also adjust the colours inside a single particle depending on the position
 * */
-function setup() {
-    flowState = noField;
-    // picks a random field
-    flowFieldShuffle();
 
+function setup() {
+    canvasSetup();
+    callSketch();
+
+    // manual refresh
+    let refreshBtn = document.getElementById('refreshPage');
+
+    refreshBtn.addEventListener("click", function () {
+        location.reload();
+    });
+
+    // set colour for all buttons to match palette
+    let btns = document.querySelectorAll(".btn");
+
+    btns.forEach((btn) => {
+        btn.style.backgroundColor = paletteTwo;
+        btn.style.color = paletteOne;
+
+        btn.addEventListener("click", function() {
+            // if already active -> remove
+            btns.forEach((btn) => btn.classList.remove("active"))
+
+            switch (btn.id) {
+                case "classicBtn":
+                    flowState = classicField;
+                    break;
+
+                case "funkyBtn":
+                    flowState = funkyField;
+                    break;
+
+                case "waveBtn":
+                    flowState = waveField;
+                    break;
+
+                case "spinBtn":
+                    flowState = spinField;
+                    break;
+
+                case "nobgBtn":
+                    backgroundInclusion = false;
+                    break;
+
+                case "bgBtn":
+                    backgroundInclusion = true;
+                    break;
+                case "qtBtn":
+                    qtreeShow = !qtreeShow;
+                    break;
+            }
+
+            btn.classList.add("active");
+        });
+    })
+}
+
+function canvasSetup() {
     // scale factor
     let magnifier = 5;
     canvasWidth = canvasWidth * magnifier;
     canvasHeight = canvasHeight * magnifier;
     //canvasHeight = 480;
     pixelSize = pixelSize * magnifier;
+
+    createCanvas(canvasWidth, canvasHeight);
+    pixelDensity(1); // one px per px
+}
+
+function callSketch() {
+    flowState = noField;
+
+    // picks a random field
+    flowFieldShuffle();
 
     /* rng values for the flowfield that modify the whole board */
     if ( flowState !== spinField) {
@@ -79,9 +142,6 @@ function setup() {
 
     // calls upon colour palette
     palettePicker();
-
-    createCanvas(canvasWidth, canvasHeight);
-    pixelDensity(1); // one px per px
 
     // dividing the canvas into cols and rows
     cols = floor(width / scale);
@@ -105,21 +165,21 @@ function setup() {
             do {
                 secondParticle[i] = new SecondParticle( width, height, pixelSize, 0);
             } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), qtree));
-            //qtree.insert(secondParticle[i]);
+            qtree.insert(secondParticle[i]);
         }
     } else {
         for (i = 0; i < particleNumber; i++) {
             do {
                 secondParticle[i] = new SecondParticle(width, height, pixelSize, 1);
             } while (particleOverlap(secondParticle[i].pos, pixelSize, particles.concat(secondParticle), qtree));
-            //qtree.insert(secondParticle[i]);
+            qtree.insert(secondParticle[i]);
 
         }
         for (i = 0; i < particleNumber; i++) {
             do {
                 particles[i] = new Particle(width, height, pixelSize, 2);
             } while (particleOverlap(particles[i].pos, pixelSize, secondParticle.concat(particles), qtree));
-            //qtree.insert(particles[i]);
+            qtree.insert(particles[i]);
         }
     }
 
@@ -128,17 +188,6 @@ function setup() {
 
     // setting the body bg according to palette colour picked
     document.body.style.backgroundColor = paletteOne;
-
-    // show pixelgrid or not
-    pixelGridShuffle();
-
-    // manual refresh
-    let refreshBtn = document.getElementById('refreshPage');
-    refreshBtn.style.backgroundColor = paletteTwo;
-    refreshBtn.style.color = paletteOne;
-    refreshBtn.addEventListener("click", function () {
-        location.reload();
-    });
 }
 
 function flowFieldShuffle() {
@@ -146,41 +195,27 @@ function flowFieldShuffle() {
     switch(shuffle) {
         case 0:
             flowState = classicField;
-            console.log("classicField");
             return flowState;
         case 1:
             flowState = waveField;
-            console.log("waveField");
             return flowState;
         case 2:
             flowState = spinField;
-            console.log("spinField");
             return flowState;
         case 3:
             flowState = funkyField;
-            console.log("funkyField");
             return flowState;
-    }
-}
-
-
-
-
-function pixelGridShuffle() {
-    let pixelGridShuffle = floor(random(0, 2));
-    if (pixelGridShuffle === 0) {
-        pixelGridInclusion = true;
     }
 }
 
 function draw() {
     invokeShuffledFlowfield();
-
     qtree.clear();    // clearing quadtree with each draw
 
     // for the different modes
     if (backgroundInclusion === true) {
         background(paletteOne);
+
     } else {
         particleInvokation(paletteOne, particles);
     }
@@ -194,9 +229,8 @@ function draw() {
     collisionDetection(particles);
 
     // show quadtree
-    //qtree.show(this);
-    if (pixelGridInclusion === true && backgroundInclusion === true) {
-        fillGrid();
+    if ( qtreeShow ) {
+        qtree.show(this);
     }
 }
 
@@ -215,9 +249,7 @@ function invokeShuffledFlowfield() {
             );
             break;
         case spinField:
-            flowField.invokespinField(
-
-            );
+            flowField.invokespinField();
             break;
         case funkyField:
             flowField.invokefunkyField();
@@ -229,18 +261,6 @@ function invokeShuffledFlowfield() {
 function fillAgain(part) {
     for( let i = 0; i < part.length; i++ ) {
         qtree.insert(part[i].pos.x, part[i].pos.y);
-    }
-}
-function fillGrid() {
-    for (let x = 0; x < canvasWidth; x += pixelSize) {
-        for (let y = 0; y < canvasHeight; y += pixelSize) {
-            noFill();
-
-            colorMode(RGB, 255, 255, 255, 1);
-            stroke(255, 0.008);
-            strokeWeight(1);
-            rect(x, y, pixelSize, pixelSize);
-        }
     }
 }
 
@@ -279,33 +299,29 @@ function collisionDetection(part) {
     }
 }
 
+function distSquared(x1, y1, x2, y2) {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    return dx * dx + dy * dy;
+}
 function getIntersection(particle1, particle2) {
     // https://github.com/timohausmann/quadtree-js/blob/master/docs/many.html
-    const r1 = particle1.size / 2,
-        r2 = particle2.height / 2,
     p1x = particle1.pos.x;
-    p1size = particle1.size;
     p1y = particle1.pos.y;
     p2x = particle2.x;
-    p2size = particle2.height;
     p2y = particle2.y;
 
-    // currently the distance is just checking for pos1 vs pos2, but I should probably
-    // add the other parameters too for more accurate collision
-    const distance = dist(p1x+p1size, p1y+p1size, p2x+p2size, p2y+p2size);
+    //const distance = dist(p1x+pixelSize, p1y+pixelSize, p2x+pixelSize, p2y+pixelSize);
+    const distance =  distSquared(p1x+pixelSize, p1y+pixelSize, p2x+pixelSize, p2y+pixelSize);
 
-    if (distance < r1 + r2) {
+    // if distance is less than the width of a pixel
+    if (distance < pixelSize) {
         // Calculate the push amounts and directions
 
-        const pushX = (p1size + p2size) - distance;
+        const pushX = (pixelSize + pixelSize) - distance;
         const dir = createVector(particle2.x - particle1.pos.x, particle2.y - particle1.pos.y).normalize();
-        const pushVector = dir.mult(p1size + p2size);
+        const pushVector = dir.mult(pixelSize + pixelSize);
 
-
-   /*     setTimeout(() => {
-            debugger
-        }, 100);
-*/
         return {
             pushVector: pushVector
         };
@@ -337,7 +353,7 @@ function particleOverlap(newPos, size, particleArray, qtree) {
 
     for (let i = 0; i < particlesInRange.length; i++) {
         const otherParticle = particlesInRange[i];
-        const d = dist(newPos.x, newPos.y, otherParticle.pos.x, otherParticle.pos.y);
+        const d = distSquared(newPos.x, newPos.y, otherParticle.pos.x, otherParticle.pos.y);
         if (d < size && particleArray.indexOf(otherParticle) === -1) {
             return true; // Overlapping with an existing particle
         }
@@ -353,6 +369,13 @@ function palettePicker() {
     // shuffling through the json
     let paletteChoice = floor(random(0, paletteCount));
 
+    // swapping spots between the colours
+    let paletteInvert = floor(random(0, 2));
+
+    if ( paletteInvert === 0) {
+        palette[paletteChoice] = palette[paletteChoice].reverse();
+    }
+
     for ( const item in palette[paletteChoice]) {
         if(item == 0) {
             paletteOne = "#" + palette[paletteChoice][item];
@@ -360,14 +383,7 @@ function palettePicker() {
             paletteTwo = "#" + palette[paletteChoice][item];
         }
     }
-
-    // swapping spots between the colours
-    let paletteInvert = floor(random(0, 2));
-    if ( paletteInvert === 0) {
-        paletteOne = [paletteTwo, paletteTwo = paletteOne][0];
-    }
 }
-
 
 /* TODO
 *   future implementation: device rotation / angle
